@@ -1,0 +1,7 @@
+
+spring:
+  data:
+    mongodb:
+      database: sequra
+      port: 27017
+      host: localhost
