@@ -1,10 +1,7 @@
 package com.sequraapi.disbursement.service.entity;
 
 import com.sequraapi.disbursement.service.enums.StatusEnum;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
@@ -17,6 +14,7 @@ import java.time.LocalDate;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 @Document(collection = "order")
 public class OrderEntity {
 

@@ -1,6 +1,7 @@
 package com.sequraapi.disbursement.service.entity;
 
 import com.sequraapi.disbursement.service.enums.DisbursementFrequencyEnum;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
@@ -12,6 +13,7 @@ import java.time.LocalDate;
 
 @Getter
 @Setter
+@Builder
 @Document(collection = "merchant")
 public class MerchantEntity {
 

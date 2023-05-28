@@ -14,7 +14,7 @@ public class FeeGreaterThenThreeHundredUseCaseImpl implements FeeUseCase {
     private String paymentReference;
 
     @Override
-    public void updateDisbursement(OrderEntity disbursement) {
+    public void updateOrder(OrderEntity disbursement) {
 
         BigDecimal feeAmount = disbursement.getAmount().multiply(BigDecimal.valueOf(0.0085));
         disbursement.setFeeAmount(feeAmount.setScale(2, RoundingMode.HALF_EVEN));
@@ -25,7 +25,7 @@ public class FeeGreaterThenThreeHundredUseCaseImpl implements FeeUseCase {
     }
 
     @Override
-    public void paymentReference(String paymentReference) {
+    public void setPaymentReference(String paymentReference) {
         this.paymentReference = paymentReference;
     }
 }

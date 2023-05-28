@@ -4,7 +4,7 @@ import com.sequraapi.disbursement.service.entity.OrderEntity;
 
 public interface FeeUseCase {
 
-    void updateDisbursement(OrderEntity disbursement);
+    void updateOrder(OrderEntity disbursement);
 
-    void paymentReference(String paymentReference);
+    void setPaymentReference(String paymentReference);
 }

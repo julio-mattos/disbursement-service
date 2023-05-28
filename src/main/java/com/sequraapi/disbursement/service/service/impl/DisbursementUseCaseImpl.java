@@ -46,30 +46,30 @@ public class DisbursementUseCaseImpl implements DisbursementUseCase {
         List<MerchantEntity> merchants  = new ArrayList<>(merchantRepository
                 .findByDisbursementFrequency(DisbursementFrequencyEnum.DAILY));
 
-        List<OrderEntity> updateDisbursement = new ArrayList<>();
+        List<OrderEntity> updatedOrders = new ArrayList<>();
 
         long startTime = System.currentTimeMillis();
 
         for (MerchantEntity merchant: merchants){
             log.info("Starting process disbursement to merchant: {}", merchant.getId());
-            List<OrderEntity> processDisbursement = orderRepository
+            List<OrderEntity> processOrders = orderRepository
                     .findByMerchantIdAndStatus(merchant.getId(), StatusEnum.PENDING);
 
             String paymentReference = UUID.randomUUID().toString();
 
-            processDisbursement.forEach(disbursement ->{
-                setFeeUseCase(disbursement);
-                feeUseCase.paymentReference(paymentReference);
-                feeUseCase.updateDisbursement(disbursement);
+            processOrders.forEach(order ->{
+                setFeeUseCase(order);
+                feeUseCase.setPaymentReference(paymentReference);
+                feeUseCase.updateOrder(order);
             });
-            calculateMinimumMonthlyFee(processDisbursement, merchant);
-            updateDisbursement.addAll(processDisbursement);
-            log.info("Processed {} disbursement for merchant {}", processDisbursement.size(), merchant.getId());
+            calculateMinimumMonthlyFee(processOrders, merchant);
+            updatedOrders.addAll(processOrders);
+            log.info("Processed {} disbursement for merchant {}", processOrders.size(), merchant.getId());
         }
 
         log.info("Start updating the disbursement on database.");
 
-        orderRepository.saveAll(updateDisbursement);
+        orderRepository.saveAll(updatedOrders);
 
         log.info("disbursement updated.");
 
@@ -85,31 +85,31 @@ public class DisbursementUseCaseImpl implements DisbursementUseCase {
                 .filter(m -> m.getLiveOn().getDayOfWeek().equals(LocalDate.now().getDayOfWeek()))
                 .collect(Collectors.toList());
 
-        List<OrderEntity> updateDisbursement = new ArrayList<>();
+        List<OrderEntity> updatedOrders = new ArrayList<>();
 
         long startTime = System.currentTimeMillis();
 
         for (MerchantEntity merchant: merchants){
             log.info("Starting process disbursement to merchant: {}", merchant);
-            List<OrderEntity> processDisbursement = orderRepository
+            List<OrderEntity> processOrders = orderRepository
                     .findByMerchantIdAndStatus(merchant.getId(), StatusEnum.PENDING);
 
             String paymentReference = UUID.randomUUID().toString();
 
-            processDisbursement.forEach(disbursement ->{
-                setFeeUseCase(disbursement);
-                feeUseCase.paymentReference(paymentReference);
-                feeUseCase.updateDisbursement(disbursement);
+            processOrders.forEach(order ->{
+                setFeeUseCase(order);
+                feeUseCase.setPaymentReference(paymentReference);
+                feeUseCase.updateOrder(order);
             });
 
-            calculateMinimumMonthlyFee(processDisbursement, merchant);
-            updateDisbursement.addAll(processDisbursement);
-            log.info("Processed {} disbursement for merchant {}", processDisbursement.size(), merchant);
+            calculateMinimumMonthlyFee(processOrders, merchant);
+            updatedOrders.addAll(processOrders);
+            log.info("Processed {} disbursement for merchant {}", processOrders.size(), merchant);
         }
 
         log.info("Start updating the disbursement on database.");
 
-        orderRepository.saveAll(updateDisbursement);
+        orderRepository.saveAll(updatedOrders);
 
         log.info("disbursement updated.");
 
@@ -141,16 +141,19 @@ public class DisbursementUseCaseImpl implements DisbursementUseCase {
             var disbursementEntity = disbursementRepository
                     .findByYearAndMonthAndMerchantId(ym.getYear(), ym.getMonthValue(), merchant.getId());
             disbursementEntity.ifPresentOrElse(disbursement -> {
-                var newTotalFee = d.stream().map(OrderEntity::getFeeAmount).reduce(disbursement.getTotalFee(), BigDecimal::add);
-                var newTotalAmount =   d.stream().map(OrderEntity::getAmount).reduce(disbursement.getTotalAmount(), BigDecimal::add);
-                var totalDisbursement = d.stream().map(m-> 1).reduce(disbursement.getTotalDisbursement(), Integer::sum);
+                if (disbursement.getStatusMinimumFee().equals(StatusMinimumFeeEnum.PENDING)){
+                    var newTotalFee = d.stream().map(OrderEntity::getFeeAmount).reduce(disbursement.getTotalFee(), BigDecimal::add);
+                    var newTotalAmount =   d.stream().map(OrderEntity::getAmount).reduce(disbursement.getTotalAmount(), BigDecimal::add);
+                    var totalDisbursement = d.stream().map(m-> 1).reduce(disbursement.getTotalDisbursement(), Integer::sum);
 
-                disbursement.setTotalDisbursement(totalDisbursement);
-                disbursement.setTotalFee(newTotalFee.setScale(2, RoundingMode.HALF_EVEN));
-                disbursement.setTotalAmount(newTotalAmount.setScale(2, RoundingMode.HALF_EVEN));
-                verifyMinimumFeeChargeable(disbursement, merchant.getMinimumMonthlyFee());
+                    disbursement.setTotalDisbursement(totalDisbursement);
+                    disbursement.setTotalFee(newTotalFee.setScale(2, RoundingMode.HALF_EVEN));
+                    disbursement.setTotalAmount(newTotalAmount.setScale(2, RoundingMode.HALF_EVEN));
 
-                disbursementRepository.save(disbursement);
+                    verifyMinimumFeeChargeable(disbursement, merchant.getMinimumMonthlyFee());
+
+                    disbursementRepository.save(disbursement);
+                }
             }, () -> {
                 var newDisbursement = new DisbursementEntity();
 
