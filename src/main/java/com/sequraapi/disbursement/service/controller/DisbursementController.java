@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.List;
 
 @RestController
@@ -41,6 +42,8 @@ public class DisbursementController {
 
     @PostMapping
     public ResponseEntity<SimpleOrderResponse> createOrder(@Validated @RequestBody OrderRequest orderRequest){
-        return ResponseEntity.accepted().body(disbursementUseCase.createOrder(orderRequest));
+        SimpleOrderResponse response = disbursementUseCase.createOrder(orderRequest);
+        return ResponseEntity.created(URI.create("/disbursement/".concat(response.getId())))
+                .body(response);
     }
 }

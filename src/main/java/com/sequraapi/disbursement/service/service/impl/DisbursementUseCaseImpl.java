@@ -18,6 +18,7 @@ import com.sequraapi.disbursement.service.service.DisbursementUseCase;
 import com.sequraapi.disbursement.service.service.FeeUseCase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Example;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;

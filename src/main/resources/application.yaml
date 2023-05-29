@@ -5,3 +5,7 @@ spring:
       database: sequra
       port: 27017
       host: localhost
+
+cron:
+  daily: 0 30 7 * * *
+  monthly: 0 0 9 1 * *

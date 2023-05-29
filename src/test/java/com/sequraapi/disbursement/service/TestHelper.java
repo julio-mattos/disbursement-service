@@ -3,6 +3,7 @@ package com.sequraapi.disbursement.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.sequraapi.disbursement.service.controller.reponse.DisbursementReportsResponse;
 import com.sequraapi.disbursement.service.entity.DisbursementEntity;
 import com.sequraapi.disbursement.service.entity.MerchantEntity;
 import com.sequraapi.disbursement.service.entity.OrderEntity;
@@ -94,6 +95,21 @@ public class TestHelper {
         } catch (IOException e) {
             throw new RuntimeException(e.getMessage());
         }
+    }
+
+    public static List<DisbursementReportsResponse> getListReports() {
+        return List.of(DisbursementReportsResponse.builder().year(2022)
+                        .numberOfDisbursements(170672)
+                        .amountDisbursedToMerchants(BigDecimal.valueOf(12830601.68))
+                        .amountOfOrdersFees(BigDecimal.valueOf(118836.58))
+                        .monthlyFeesCharged(8)
+                        .amountMonthlyFeeCharged(BigDecimal.valueOf(141.36)).build(),
+                DisbursementReportsResponse.builder().year(2023)
+                        .numberOfDisbursements(110016)
+                        .amountDisbursedToMerchants(BigDecimal.valueOf(9972431.22))
+                        .amountOfOrdersFees(BigDecimal.valueOf(92108.64))
+                        .monthlyFeesCharged(9)
+                        .amountMonthlyFeeCharged(BigDecimal.valueOf(150.68)).build());
     }
 
 }

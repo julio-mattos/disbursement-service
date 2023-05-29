@@ -14,14 +14,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(value = {MerchantNotFoundException.class})
     public ResponseEntity<GeneralException> handleMerchantException(MerchantNotFoundException ex){
         GeneralException generalException = new GeneralException(
-                HttpStatus.BAD_REQUEST.toString(), ex.getMessage());
+                HttpStatus.NOT_FOUND.value(), ex.getMessage());
         return new ResponseEntity<>(generalException, HttpStatus.valueOf(generalException.getCode()));
     }
 
     @ExceptionHandler(value = {Exception.class})
     public ResponseEntity<GeneralException> handleException(Exception ex){
         GeneralException generalException = new GeneralException(
-                HttpStatus.INTERNAL_SERVER_ERROR.toString(), ex.getMessage());
+                HttpStatus.INTERNAL_SERVER_ERROR.value(), ex.getMessage());
         return new ResponseEntity<>(generalException, HttpStatus.valueOf(generalException.getCode()));
     }
 }

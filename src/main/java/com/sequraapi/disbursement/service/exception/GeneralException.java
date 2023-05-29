@@ -11,6 +11,6 @@ import lombok.Setter;
 @NoArgsConstructor
 public class GeneralException {
 
-    private String code;
+    private int code;
     private String message;
 }

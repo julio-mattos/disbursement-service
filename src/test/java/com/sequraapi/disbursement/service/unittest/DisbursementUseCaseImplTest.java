@@ -5,6 +5,7 @@ import com.sequraapi.disbursement.service.controller.reponse.DisbursementReports
 import com.sequraapi.disbursement.service.controller.reponse.SimpleOrderResponse;
 import com.sequraapi.disbursement.service.controller.request.OrderRequest;
 import com.sequraapi.disbursement.service.entity.DisbursementEntity;
+import com.sequraapi.disbursement.service.entity.MerchantEntity;
 import com.sequraapi.disbursement.service.entity.OrderEntity;
 import com.sequraapi.disbursement.service.enums.DisbursementFrequencyEnum;
 import com.sequraapi.disbursement.service.enums.StatusEnum;
@@ -19,10 +20,7 @@ import com.sequraapi.disbursement.service.service.impl.FeeSmallerThenFiftyUseCas
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Spy;
+import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
@@ -80,8 +78,10 @@ public class DisbursementUseCaseImplTest {
 
     @Test
     void shouldProcessOrdersWeekly(){
+        List<MerchantEntity>  merchant = TestHelper.getMerchantWeekly();
+        merchant.forEach(m->m.setLiveOn(LocalDate.now()));
 
-        doReturn(TestHelper.getMerchantWeekly()).when(merchantRepository)
+        doReturn(merchant).when(merchantRepository)
                 .findByDisbursementFrequency(DisbursementFrequencyEnum.WEEKLY);
 
         doReturn(TestHelper.getOrdersWeekly()).when(orderRepository).findByMerchantIdAndStatus(anyString(), any(StatusEnum.class));
