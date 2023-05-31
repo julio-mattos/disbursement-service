@@ -16,7 +16,7 @@ The disbursement-service is a project that automates the process of generating d
 ## Installation
 
 To install the disbursement-service, follow these steps:
-1. Install mongodb for your operating system or use docker to create a container with mongodb. **important**: the configuration of mongodb is set without user and password, if you choose to create a user and password you need to set on the application.yml these credentials.
+1. Install mongodb for your operating system or use docker to create a container with mongodb. **important**: the configuration of mongodb is set without user and password, if you choose to create a user and password you need to set on the application.yaml these credentials.
 2. Clone the repository: git clone https://github.com/julio-mattos/disbursement-service.git
 3. Navigate to the project directory: **cd disbursement-service**
 4. run this command:

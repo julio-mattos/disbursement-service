@@ -10,6 +10,7 @@ import com.sequraapi.disbursement.service.enums.DisbursementFrequencyEnum;
 import com.sequraapi.disbursement.service.enums.StatusMinimumFeeEnum;
 import com.sequraapi.disbursement.service.enums.StatusEnum;
 import com.sequraapi.disbursement.service.exception.MerchantNotFoundException;
+import com.sequraapi.disbursement.service.mapper.DisbursementMapper;
 import com.sequraapi.disbursement.service.mapper.OrderMapper;
 import com.sequraapi.disbursement.service.repository.OrderRepository;
 import com.sequraapi.disbursement.service.repository.MerchantRepository;
@@ -91,7 +92,7 @@ public class DisbursementUseCaseImpl implements DisbursementUseCase {
         long startTime = System.currentTimeMillis();
 
         for (MerchantEntity merchant: merchants){
-            log.info("Starting process disbursement to merchant: {}", merchant);
+            log.info("Starting process disbursement to merchant: {}", merchant.getId());
             List<OrderEntity> processOrders = orderRepository
                     .findByMerchantIdAndStatus(merchant.getId(), StatusEnum.PENDING);
 
@@ -105,7 +106,7 @@ public class DisbursementUseCaseImpl implements DisbursementUseCase {
 
             calculateMinimumMonthlyFee(processOrders, merchant);
             updatedOrders.addAll(processOrders);
-            log.info("Processed {} disbursement for merchant {}", processOrders.size(), merchant);
+            log.info("Processed {} disbursement for merchant {}", processOrders.size(), merchant.getId());
         }
 
         log.info("Start updating the disbursement on database.");
@@ -123,6 +124,7 @@ public class DisbursementUseCaseImpl implements DisbursementUseCase {
     public void processMinimumMonthlyFee() {
         List<DisbursementEntity> disbursements = disbursementRepository.findByStatusMinimumFee(StatusMinimumFeeEnum.PENDING);
 
+        log.info("Starting process minimum monthly fee ...");
         disbursements.forEach(d->{
             Optional<MerchantEntity> maybeMerchant = merchantRepository.findById(d.getMerchantId());
 
@@ -131,45 +133,29 @@ public class DisbursementUseCaseImpl implements DisbursementUseCase {
             d.setStatusMinimumFee(StatusMinimumFeeEnum.CHARGED);
         });
 
+        log.info("Start updating the minimum monthly fee calculated on database.");
+
         disbursementRepository.saveAll(disbursements);
+
+        log.info("Processing finished!");
     }
 
     private void calculateMinimumMonthlyFee(List<OrderEntity> processDisbursement, MerchantEntity merchant) {
-        var map= processDisbursement
+        var map = processDisbursement
                 .stream().collect(Collectors.groupingBy(d -> YearMonth.from(d.getCreatedAt())));
 
-        map.forEach((ym, d) -> {
+        map.forEach((ym, orderList) -> {
             var disbursementEntity = disbursementRepository
                     .findByYearAndMonthAndMerchantId(ym.getYear(), ym.getMonthValue(), merchant.getId());
             disbursementEntity.ifPresentOrElse(disbursement -> {
-                if (disbursement.getStatusMinimumFee().equals(StatusMinimumFeeEnum.PENDING)){
-                    var newTotalFee = d.stream().map(OrderEntity::getFeeAmount).reduce(disbursement.getTotalFee(), BigDecimal::add);
-                    var newTotalAmount =   d.stream().map(OrderEntity::getAmount).reduce(disbursement.getTotalAmount(), BigDecimal::add);
-                    var totalDisbursement = d.stream().map(m-> 1).reduce(disbursement.getTotalDisbursement(), Integer::sum);
-
-                    disbursement.setTotalDisbursement(totalDisbursement);
-                    disbursement.setTotalFee(newTotalFee.setScale(2, RoundingMode.HALF_EVEN));
-                    disbursement.setTotalAmount(newTotalAmount.setScale(2, RoundingMode.HALF_EVEN));
-
+                if (disbursement.getStatusMinimumFee().equals(StatusMinimumFeeEnum.PENDING)) {
+                    DisbursementMapper.INSTANCE.mapUpdatedDisbursement(disbursement, orderList, merchant);
                     verifyMinimumFeeChargeable(disbursement, merchant.getMinimumMonthlyFee());
 
                     disbursementRepository.save(disbursement);
                 }
             }, () -> {
-                var newDisbursement = new DisbursementEntity();
-
-                var totalFee = d.stream().map(OrderEntity::getFeeAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
-                var totalAmount =   d.stream().map(OrderEntity::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
-                var totalDisbursement = d.stream().map(m-> 1).reduce(0, Integer::sum);
-
-                newDisbursement.setTotalFee(totalFee.setScale(2, RoundingMode.HALF_EVEN));
-                newDisbursement.setMerchantId(merchant.getId());
-                newDisbursement.setTotalDisbursement(totalDisbursement);
-                newDisbursement.setTotalAmount(totalAmount);
-                newDisbursement.setYear(ym.getYear());
-                newDisbursement.setMonth(ym.getMonthValue());
-                newDisbursement.setStatusMinimumFee(StatusMinimumFeeEnum.PENDING);
-
+                var newDisbursement = DisbursementMapper.INSTANCE.mapNewDisbursement(orderList, merchant, ym);
                 verifyMinimumFeeChargeable(newDisbursement, merchant.getMinimumMonthlyFee());
 
                 disbursementRepository.save(newDisbursement);
@@ -207,28 +193,14 @@ public class DisbursementUseCaseImpl implements DisbursementUseCase {
 
         List<DisbursementEntity> disbursements = disbursementRepository.findAll();
 
-        var mapPerYear = disbursements.stream().collect(Collectors.groupingBy(DisbursementEntity::getYear));
+        var mapPerYear = disbursements.stream().collect(
+                Collectors.groupingBy(DisbursementEntity::getYear));
 
         List<DisbursementReportsResponse> responses = new ArrayList<>();
 
-        mapPerYear.forEach((y, d) -> {
-            DisbursementReportsResponse response = new DisbursementReportsResponse();
+        mapPerYear.forEach((year, disbursementList) ->
+                responses.add(DisbursementMapper.INSTANCE.map(disbursementList, year)));
 
-            var numberOfDisbursement = d.stream().map(DisbursementEntity::getTotalDisbursement).reduce(0, Integer::sum);
-            var amountDisbursedToMerchants = d.stream().map(DisbursementEntity::getTotalAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
-            var amountOfOrdersFees = d.stream().map(DisbursementEntity::getTotalFee).reduce(BigDecimal.ZERO, BigDecimal::add);
-            var monthlyFeesCharged = d.stream().map(m -> m.getIsMinimumFeeChargeable() ? 1 : 0).reduce(0, Integer::sum);
-            var amountMonthlyFeeCharged = d.stream().map(DisbursementEntity::getAmountFeeChargeable).reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            response.setYear(y);
-            response.setNumberOfDisbursements(numberOfDisbursement);
-            response.setAmountDisbursedToMerchants(amountDisbursedToMerchants);
-            response.setAmountOfOrdersFees(amountOfOrdersFees);
-            response.setMonthlyFeesCharged(monthlyFeesCharged);
-            response.setAmountMonthlyFeeCharged(amountMonthlyFeeCharged);
-
-            responses.add(response);
-        });
         return responses;
     }
 
